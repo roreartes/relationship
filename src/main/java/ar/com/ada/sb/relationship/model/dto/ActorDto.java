@@ -1,5 +1,7 @@
 package ar.com.ada.sb.relationship.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -23,10 +25,11 @@ public class ActorDto {
     private String Gender;
     @NotBlank(message = "Birthday is required")
     @Past(message = "the birthday must be past date")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate birthday;
     @NotBlank(message = "the biography is required")
     private String bio;
-
+    @JsonIgnoreProperties(value = "actors")
     private Set<FilmDto> films;
 
     public ActorDto(Long id, String name, String gender, LocalDate birthday, String bio, Set<FilmDto> films) {

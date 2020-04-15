@@ -6,6 +6,9 @@ import ar.com.ada.sb.relationship.exception.BusinessLogicException;
 import ar.com.ada.sb.relationship.model.dto.ActorDto;
 import ar.com.ada.sb.relationship.model.entity.Actor;
 import ar.com.ada.sb.relationship.model.mapper.ActorMapper;
+import ar.com.ada.sb.relationship.model.mapper.circulardependency.ActorCycleMapper;
+import ar.com.ada.sb.relationship.model.mapper.circulardependency.CycleAvoidingmappingContext;
+import ar.com.ada.sb.relationship.model.mapper.circulardependency.DirectorCycleMapper;
 import ar.com.ada.sb.relationship.model.repository.ActorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -23,11 +26,9 @@ public class ActorServices implements Services<ActorDto> {
     @Qualifier("actorRepository")
     private ActorRepository actorRepository;
 
-    private ActorMapper actorMapper;
+    private ActorCycleMapper actorCycleMapper = ActorCycleMapper.MAPPER;
 
-    public ActorServices(ActorMapper actorMapper) {
-        this.actorMapper = actorMapper;
-    }
+    private CycleAvoidingmappingContext context = CycleAvoidingmappingContext.getInstance();
 
     @Autowired
     @Qualifier("businessLogicExceptionComponent")
@@ -36,7 +37,7 @@ public class ActorServices implements Services<ActorDto> {
     @Override
     public List<ActorDto> findAll() {
         List<Actor> actorsEntityList = actorRepository.findAll();
-        List<ActorDto> actorsDtoList = actorMapper.toDto(actorsEntityList);
+        List<ActorDto> actorsDtoList = actorCycleMapper.toDto(actorsEntityList, context);
 
         return actorsDtoList;
     }
@@ -47,7 +48,7 @@ public class ActorServices implements Services<ActorDto> {
 
         if (byIdOptional.isPresent()) {
             Actor actorById = byIdOptional.get();
-            actorDto = actorMapper.toDto(actorById);
+            actorDto = actorCycleMapper.toDto(actorById, context);
         } else {
             logicExceptionComponent.throwExceptionEntityNotFound("Actor", id);
 
@@ -57,9 +58,9 @@ public class ActorServices implements Services<ActorDto> {
 
     @Override
     public ActorDto save(ActorDto dto) {
-        Actor actorToSave = actorMapper.toEntity(dto);  //(lo pasa a entity))
+        Actor actorToSave = actorCycleMapper.toEntity(dto, context);  //(lo pasa a entity))
         Actor actorsaved = actorRepository.save(actorToSave); // lo guardo en la base de datos
-        ActorDto actorDtoSaved = actorMapper.toDto(actorsaved); // se guardo, ya convertido en dto. se retorna
+        ActorDto actorDtoSaved = actorCycleMapper.toDto(actorsaved, context); // se guardo, ya convertido en dto. se retorna
         return actorDtoSaved;
     }
 
@@ -71,9 +72,9 @@ public class ActorServices implements Services<ActorDto> {
         if (byIdOptional.isPresent()) {
             Actor actorById = byIdOptional.get();
             actorDtoToUpdate.setId(actorById.getId());
-            Actor actorToUpdate = actorMapper.toEntity(actorDtoToUpdate);
+            Actor actorToUpdate = actorCycleMapper.toEntity(actorDtoToUpdate, context);
             Actor actorUpdated = actorRepository.save(actorToUpdate);
-            actorDtoUpdated = actorMapper.toDto(actorUpdated);
+            actorDtoUpdated = actorCycleMapper.toDto(actorUpdated, context);
         } else {
             logicExceptionComponent.throwExceptionEntityNotFound("Actor", id);
         }

@@ -6,6 +6,10 @@ import ar.com.ada.sb.relationship.exception.BusinessLogicException;
 import ar.com.ada.sb.relationship.model.dto.DirectorDto;
 import ar.com.ada.sb.relationship.model.entity.Director;
 import ar.com.ada.sb.relationship.model.mapper.DirectorMapper;
+import ar.com.ada.sb.relationship.model.mapper.circulardependency.CycleAvoidingmappingContext;
+import ar.com.ada.sb.relationship.model.mapper.circulardependency.DataCycleMapper;
+import ar.com.ada.sb.relationship.model.mapper.circulardependency.DirectorCycleMapper;
+import ar.com.ada.sb.relationship.model.mapper.circulardependency.FilmCycleMapper;
 import ar.com.ada.sb.relationship.model.repository.DirectorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -26,17 +30,17 @@ public class DirectorServices implements Services<DirectorDto> {
     @Qualifier("businessLogicExceptionComponent")
     private BusinessLogicExceptionComponent logicExceptionComponent;
 
-    private DirectorMapper directorMapper;
 
-    public DirectorServices(DirectorMapper directorMapper) {
-        this.directorMapper = directorMapper;
-    }
+    private DirectorCycleMapper directorCycleMapper = DirectorCycleMapper.MAPPER;
+
+    private CycleAvoidingmappingContext context = CycleAvoidingmappingContext.getInstance();
+
 
 
     @Override
     public List<DirectorDto> findAll() {
         List<Director> allDirectorsEntity = directorRepository.findAll();
-        List<DirectorDto> directorDtosList = directorMapper.toDto(allDirectorsEntity);
+        List<DirectorDto> directorDtosList = directorCycleMapper.toDto(allDirectorsEntity, context);
 
         return directorDtosList;
     }
@@ -48,7 +52,7 @@ public class DirectorServices implements Services<DirectorDto> {
 
         if (directorByIdOptional.isPresent()) {
             Director directorById = directorByIdOptional.get();
-            directorDto = directorMapper.toDto(directorById);
+            directorDto = directorCycleMapper.toDto(directorById, context);
         } else {
             logicExceptionComponent.throwExceptionEntityNotFound("Director", id);
         }
@@ -57,9 +61,9 @@ public class DirectorServices implements Services<DirectorDto> {
 
     @Override
     public DirectorDto save(DirectorDto dto) {
-        Director directorToSave = directorMapper.toEntity(dto);
+        Director directorToSave = directorCycleMapper.toEntity(dto, context);
         Director directorSaved = directorRepository.save(directorToSave);
-        DirectorDto directorDtoSaved = directorMapper.toDto(directorSaved);
+        DirectorDto directorDtoSaved = directorCycleMapper.toDto(directorSaved, context);
 
         return directorDtoSaved;
     }
@@ -73,9 +77,9 @@ public class DirectorServices implements Services<DirectorDto> {
         if (byIdOptional.isPresent()) {
             Director directorById = byIdOptional.get();
             directorDtoToUpdate.setId(directorById.getId());
-            Director directorToUpdate = directorMapper.toEntity(directorDtoToUpdate);
+            Director directorToUpdate = directorCycleMapper.toEntity(directorDtoToUpdate, context);
             Director directorUpdated = directorRepository.save(directorToUpdate);
-            directorDtoUpdated = directorMapper.toDto(directorUpdated);
+            directorDtoUpdated = directorCycleMapper.toDto(directorUpdated, context);
 
 
         } else {

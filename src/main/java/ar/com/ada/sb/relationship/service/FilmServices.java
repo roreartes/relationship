@@ -8,6 +8,8 @@ import ar.com.ada.sb.relationship.model.entity.Actor;
 import ar.com.ada.sb.relationship.model.entity.Film;
 import ar.com.ada.sb.relationship.model.mapper.DirectorMapper;
 import ar.com.ada.sb.relationship.model.mapper.FilmMapper;
+import ar.com.ada.sb.relationship.model.mapper.circulardependency.CycleAvoidingmappingContext;
+import ar.com.ada.sb.relationship.model.mapper.circulardependency.FilmCycleMapper;
 import ar.com.ada.sb.relationship.model.repository.ActorRepository;
 import ar.com.ada.sb.relationship.model.repository.FilmRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,16 +33,15 @@ public class FilmServices implements Services<FilmDto> {
     @Qualifier("filmRepository")
     private FilmRepository filmRepository;
 
-    private FilmMapper filmMapper;
+    private FilmCycleMapper filmCycleMapper = FilmCycleMapper.MAPPER;
 
-    public FilmServices(FilmMapper filmMapper) {
-        this.filmMapper = filmMapper;
-    }
+    private CycleAvoidingmappingContext context = CycleAvoidingmappingContext.getInstance();
+
 
     @Override
     public List<FilmDto> findAll() {
         List<Film> allFilmsEntity = filmRepository.findAll();
-        List<FilmDto> allFilmDtos = filmMapper.toDto(allFilmsEntity);
+        List<FilmDto> allFilmDtos = filmCycleMapper.toDto(allFilmsEntity, context);
         return allFilmDtos;
     }
 
@@ -50,7 +51,7 @@ public class FilmServices implements Services<FilmDto> {
 
         if (filmById.isPresent()) {
             Film film = filmById.get();
-            filmDtoById = filmMapper.toDto(film);
+            filmDtoById = filmCycleMapper.toDto(film, context);
         } else {
             logicExceptionComponent.throwExceptionEntityNotFound("film", id);
         }
@@ -59,9 +60,9 @@ public class FilmServices implements Services<FilmDto> {
 
     @Override
     public FilmDto save(FilmDto dto) {
-        Film filmToSave = filmMapper.toEntity(dto);
+        Film filmToSave = filmCycleMapper.toEntity(dto, context);
         Film saveEntityFilm = filmRepository.save(filmToSave);
-        FilmDto filmDtoSaved = filmMapper.toDto(saveEntityFilm);
+        FilmDto filmDtoSaved = filmCycleMapper.toDto(saveEntityFilm, context);
         return null;
     }
 
@@ -72,9 +73,9 @@ public class FilmServices implements Services<FilmDto> {
         if (filmByIdOptional.isPresent()) {
             Film filmById = filmByIdOptional.get();
             filmDtoToUpdate.setId(filmById.getId());
-            Film filmEntity = filmMapper.toEntity(filmDtoToUpdate);
+            Film filmEntity = filmCycleMapper.toEntity(filmDtoToUpdate, context);
             Film filmSaved = filmRepository.save(filmEntity);
-            filmDtoUpdated = filmMapper.toDto(filmSaved);
+            filmDtoUpdated = filmCycleMapper.toDto(filmSaved, context);
 
 
         } else {
@@ -104,22 +105,22 @@ public class FilmServices implements Services<FilmDto> {
 
         FilmDto filmDtoWithNewActor = null;
 
-        if(!filmByIdOptional.isPresent()){
+        if(!filmByIdOptional.isPresent()){  // Valida existencia del film y del actor
             logicExceptionComponent.throwExceptionEntityNotFound("Film", filmId);
         }
         if(!actorByIdOptional.isPresent()){
             logicExceptionComponent.throwExceptionEntityNotFound("Actor", actorId);
         }
 
-        Film film = filmByIdOptional.get();
+        Film film = filmByIdOptional.get(); // extrae ambos ID
         Actor actorToAdd = actorByIdOptional.get();
-
+//valida si existe algun actor con el mismo nombre
         boolean hasActorInFilm = film.getActors().stream().anyMatch(actor -> actor.getName().equals(actorToAdd.getName()));
 
         if(!hasActorInFilm) {
-            film.addActor(actorToAdd);
-            Film filmWithNewActor = filmRepository.save(film);
-            filmDtoWithNewActor = filmMapper.toDto(filmWithNewActor);
+            film.addActor(actorToAdd); //asigna el actor al film
+            Film filmWithNewActor = filmRepository.save(film); //lo guarde en BD
+            filmDtoWithNewActor = filmCycleMapper.toDto(filmWithNewActor, context); // convierte a dto p devolver a controller
 
         } else {
             ApiEntityError apiEntityError = new ApiEntityError(
