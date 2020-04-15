@@ -23,7 +23,7 @@ public class FilmDto {
     private Date year;
     @JsonIgnoreProperties(value = "films")
     private DirectorDto director;
-    @JsonIgnoreProperties(value = "films")
+
     private Set<ActorDto> actors;
 
     public FilmDto(Long id, String tittle, String description, Date year, DirectorDto director, Set<ActorDto> actors) {

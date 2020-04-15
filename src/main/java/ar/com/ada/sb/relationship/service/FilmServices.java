@@ -5,12 +5,14 @@ import ar.com.ada.sb.relationship.exception.ApiEntityError;
 import ar.com.ada.sb.relationship.exception.BusinessLogicException;
 import ar.com.ada.sb.relationship.model.dto.FilmDto;
 import ar.com.ada.sb.relationship.model.entity.Actor;
+import ar.com.ada.sb.relationship.model.entity.Director;
 import ar.com.ada.sb.relationship.model.entity.Film;
 import ar.com.ada.sb.relationship.model.mapper.DirectorMapper;
 import ar.com.ada.sb.relationship.model.mapper.FilmMapper;
 import ar.com.ada.sb.relationship.model.mapper.circulardependency.CycleAvoidingmappingContext;
 import ar.com.ada.sb.relationship.model.mapper.circulardependency.FilmCycleMapper;
 import ar.com.ada.sb.relationship.model.repository.ActorRepository;
+import ar.com.ada.sb.relationship.model.repository.DirectorRepository;
 import ar.com.ada.sb.relationship.model.repository.FilmRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -26,12 +28,16 @@ public class FilmServices implements Services<FilmDto> {
     @Qualifier("businessLogicExceptionComponent")
     private BusinessLogicExceptionComponent logicExceptionComponent;
 
-    @Autowired @Qualifier("actorRepository")
+    @Autowired
+    @Qualifier("actorRepository")
     private ActorRepository actorRepository;
 
     @Autowired
     @Qualifier("filmRepository")
     private FilmRepository filmRepository;
+    @Autowired
+    @Qualifier
+    private DirectorRepository directorRepository;
 
     private FilmCycleMapper filmCycleMapper = FilmCycleMapper.MAPPER;
 
@@ -105,10 +111,10 @@ public class FilmServices implements Services<FilmDto> {
 
         FilmDto filmDtoWithNewActor = null;
 
-        if(!filmByIdOptional.isPresent()){  // Valida existencia del film y del actor
+        if (!filmByIdOptional.isPresent()) {  // Valida existencia del film y del actor
             logicExceptionComponent.throwExceptionEntityNotFound("Film", filmId);
         }
-        if(!actorByIdOptional.isPresent()){
+        if (!actorByIdOptional.isPresent()) {
             logicExceptionComponent.throwExceptionEntityNotFound("Actor", actorId);
         }
 
@@ -117,7 +123,7 @@ public class FilmServices implements Services<FilmDto> {
 //valida si existe algun actor con el mismo nombre
         boolean hasActorInFilm = film.getActors().stream().anyMatch(actor -> actor.getName().equals(actorToAdd.getName()));
 
-        if(!hasActorInFilm) {
+        if (!hasActorInFilm) {
             film.addActor(actorToAdd); //asigna el actor al film
             Film filmWithNewActor = filmRepository.save(film); //lo guarde en BD
             filmDtoWithNewActor = filmCycleMapper.toDto(filmWithNewActor, context); // convierte a dto p devolver a controller
@@ -135,6 +141,29 @@ public class FilmServices implements Services<FilmDto> {
             );
         }
         return filmDtoWithNewActor;
+
+    }
+
+    public FilmDto addDirectorToFilm(Long directorId, Long filmId) {
+        Optional<Film> filmByIdOptional = filmRepository.findById(filmId);
+        Optional<Director> directorByIdOptional = directorRepository.findById(directorId);
+
+        FilmDto filmDtoWithDirector = null;
+
+        if (!filmByIdOptional.isPresent()) {  // Valida existencia del film y del actor
+            logicExceptionComponent.throwExceptionEntityNotFound("Film", filmId);
+        }
+        if (!directorByIdOptional.isPresent()) {
+            logicExceptionComponent.throwExceptionEntityNotFound("Director", directorId);
+        }
+        Film film = filmByIdOptional.get();
+        Director directorToSet = directorByIdOptional.get();
+
+        film.setDirector(directorToSet);
+        Film filmWithDirector = filmRepository.save(film);
+        filmDtoWithDirector = filmCycleMapper.toDto(filmWithDirector, context);
+
+        return filmDtoWithDirector;
 
     }
 }

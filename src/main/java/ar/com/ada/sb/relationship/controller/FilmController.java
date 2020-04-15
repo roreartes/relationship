@@ -56,13 +56,18 @@ public class FilmController {
     }
 
     @PutMapping({"/{filmId}/actors/{actorId}", "/{fildId}/actors/{actorId}"})
-    public ResponseEntity addActorToFilm(@PathVariable Long filmId, @PathVariable Long actorId){
+    public ResponseEntity addActorToFilm(@PathVariable Long filmId, @PathVariable Long actorId) {
         FilmDto filmDtoWithNewActor = filmServices.addActorToFilm(actorId, filmId);
         return ResponseEntity.ok(filmDtoWithNewActor);
     }
 
-
+    @PutMapping({"/{filmId}/directors/{directorId}", "/{fildId}/directors/{directorId}"})
+    public ResponseEntity addDirectorToFilm(@PathVariable Long filmId, @PathVariable Long directorId) {
+        FilmDto filmDtoWithDirector = filmServices.addDirectorToFilm(directorId, filmId);
+        return ResponseEntity.ok(filmDtoWithDirector);
     }
+
+}
 
 
 

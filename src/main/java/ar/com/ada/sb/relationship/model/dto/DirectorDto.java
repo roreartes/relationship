@@ -1,5 +1,6 @@
 package ar.com.ada.sb.relationship.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -14,7 +15,10 @@ public class DirectorDto {
     private Long id;
     @NotBlank(message = "Name is required")
     private String name;
+
+    @NotBlank(message = "Bio is required")
     private String bio;
+    @JsonIgnoreProperties(value = "director")
     private Set<FilmDto> films;
 
     public DirectorDto(Long id, String name, String bio, Set<FilmDto> films) {
